@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Puzzles de Ajedrez</title>
+  <!-- Carga de la hoja de estilos de chessboard.js desde jsDelivr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f7f7f7;
+      color: #333;
+    }
+    #app {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    #board {
+      margin: 0 auto;
+    }
+    #info {
+      margin-top: 15px;
+      text-align: center;
+      min-height: 24px;
+    }
+    #controls {
+      display: flex;
+      justify-content: center;
+      margin-top: 15px;
+    }
+    button {
+      margin: 0 5px;
+      padding: 8px 12px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      transition: background-color 0.2s ease;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    #stars {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 20px;
+      color: #E2B007; /* oro */
+    }
+    #progress {
+      margin-top: 20px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <h1>Puzzles de Ajedrez</h1>
+    <div id="board" style="width: 400px;"></div>
+    <div id="info"></div>
+    <div id="controls">
+      <button id="hintBtn">Pedir asesoría</button>
+      <button id="nextBtn" style="display:none;">Siguiente</button>
+    </div>
+    <div id="stars"></div>
+    <div id="progress"></div>
+  </div>
+  <!-- Dependencias de la aplicación -->
+  <!-- Cargamos jQuery desde jsDelivr porque chessboard.js depende de jQuery -->
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+  <!-- Biblioteca de lógica de ajedrez. Usamos la versión minificada de jsDelivr para evitar problemas de CORS -->
+  <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
+  <!-- Biblioteca de visualización de tablero. Usamos el paquete oficial @chrisoakman/chessboardjs -->
+  <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
