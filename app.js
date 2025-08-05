@@ -20,7 +20,8 @@
 const puzzles = [
   {
     name: 'El Molino',
-    fen: 'r1bq2r1/b4pk1/p1pp1p2/1p2pP2/1P2P1PB/3P4/1PPQ2P1/R3K2R w',
+    // FEN completo (incluye campos de castling, en passant, etc.)
+    fen: 'r1bq2r1/b4pk1/p1pp1p2/1p2pP2/1P2P1PB/3P4/1PPQ2P1/R3K2R w - - 0 1',
     solution: ['Qh6+', 'Kxh6', 'Bxf6#'],
     side: 'w',
     mateIn: 2,
@@ -49,7 +50,9 @@ let currentPuzzleIndex = 0;
 let hintCount = 0;
 let starsEarned = 3;
 let game;
-let board;
+// Mantenemos el cuadrado seleccionado y las jugadas legales actuales
+let selectedSquare = null;
+let legalMoves = [];
 
 // Inicializa el juego cargando el primer puzzle
 function init() {
@@ -65,34 +68,9 @@ function loadPuzzle(index) {
   hintCount = 0;
   starsEarned = 3;
   game = new Chess(puzzle.fen);
-  // Configuración del tablero con arrastre de piezas y callbacks
-  if (board) {
-    board.destroy();
-  }
-  board = Chessboard('board', {
-    position: puzzle.fen,
-    orientation: puzzle.side === 'w' ? 'white' : 'black',
-    draggable: true,
-    moveSpeed: 'fast',
-    onDragStart: function (source, piece, position, orientation) {
-      // Bloquear arrastre si el juego ha terminado o no es el turno del lado que mueve
-      if (game.game_over()) return false;
-      const turn = game.turn();
-      if ((turn === 'w' && piece.search(/^b/) !== -1) || (turn === 'b' && piece.search(/^w/) !== -1)) {
-        return false;
-      }
-    },
-    onDrop: function (source, target) {
-      const move = game.move({ from: source, to: target, promotion: 'q' });
-      if (move === null) {
-        return 'snapback';
-      }
-      updateStatus();
-    },
-    onSnapEnd: function () {
-      board.position(game.fen());
-    }
-  });
+  selectedSquare = null;
+  legalMoves = [];
+  renderBoard();
   document.getElementById('info').textContent = `Nivel ${index + 1}: ${puzzle.name} – ${puzzle.mateIn === 1 ? 'Mate en 1' : 'Mate en ' + puzzle.mateIn}`;
   document.getElementById('stars').textContent = '★★★';
   document.getElementById('nextBtn').style.display = 'none';
@@ -112,11 +90,11 @@ function showHint() {
 
 // Comprueba el estado del juego después de cada movimiento y determina si se ha resuelto el puzzle
 function updateStatus() {
+  renderBoard();
   if (game.in_checkmate()) {
     // Puzzle resuelto
     const puzzle = puzzles[currentPuzzleIndex];
     alert(`¡Excelente! Has resuelto el puzzle "${puzzle.name}".\n${puzzle.quote}`);
-    // Registrar estrellas (aquí podríamos guardar en localStorage o backend)
     document.getElementById('nextBtn').style.display = 'inline-block';
   } else {
     const puzzle = puzzles[currentPuzzleIndex];
@@ -127,6 +105,105 @@ function updateStatus() {
       loadPuzzle(currentPuzzleIndex);
     }
   }
+}
+
+/*
+ * Representación y gestión del tablero manualmente usando un grid de divs.
+ * Cada casilla tiene un atributo data-square con su notación algebraica (e.g., "e4").
+ * Se utiliza Unicode para dibujar las piezas y CSS para el tablero.
+ */
+
+// Mapa de piezas en notación FEN a caracteres Unicode
+const unicodeMap = {
+  p: '\u265F', // peón negro
+  r: '\u265C', // torre negra
+  n: '\u265E', // caballo negro
+  b: '\u265D', // alfil negro
+  q: '\u265B', // reina negra
+  k: '\u265A', // rey negro
+  P: '\u2659', // peón blanco
+  R: '\u2656', // torre blanca
+  N: '\u2658', // caballo blanco
+  B: '\u2657', // alfil blanco
+  Q: '\u2655', // reina blanca
+  K: '\u2654'  // rey blanco
+};
+
+// Genera el tablero en el DOM según el estado actual de game
+function renderBoard() {
+  const boardContainer = document.getElementById('chessBoard');
+  boardContainer.innerHTML = '';
+  // game.board() devuelve una matriz 8x8 comenzando desde la octava fila
+  const position = game.board();
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const square = document.createElement('div');
+      square.classList.add('square');
+      // Determinar color de la casilla
+      if ((row + col) % 2 === 0) {
+        square.classList.add('light');
+      } else {
+        square.classList.add('dark');
+      }
+      // Coordenadas algebraicas: columnas a-h, filas 8-1
+      const file = String.fromCharCode('a'.charCodeAt(0) + col);
+      const rank = 8 - row;
+      const coord = file + rank;
+      square.dataset.square = coord;
+      // Mostrar la pieza si la hay
+      const piece = position[row][col];
+      if (piece) {
+        // piece.color es 'w' o 'b' y piece.type es la letra en minúscula
+        const key = piece.color === 'w' ? piece.type.toUpperCase() : piece.type.toLowerCase();
+        const char = unicodeMap[key];
+        square.textContent = char;
+      }
+      // Añadir clase highlight si el cuadrado está en las jugadas legales o seleccionado
+      if (coord === selectedSquare) {
+        square.classList.add('highlight');
+      } else if (legalMoves.includes(coord)) {
+        square.classList.add('highlight');
+      }
+      square.addEventListener('click', handleSquareClick);
+      boardContainer.appendChild(square);
+    }
+  }
+}
+
+// Maneja clics en las casillas para seleccionar piezas y realizar jugadas
+function handleSquareClick(event) {
+  const clickedSquare = event.currentTarget.dataset.square;
+  // Si hay una selección previa y el usuario hace clic en una jugada legal
+  if (selectedSquare && legalMoves.includes(clickedSquare)) {
+    // Realizar la jugada
+    const move = game.move({ from: selectedSquare, to: clickedSquare, promotion: 'q' });
+    if (move) {
+      selectedSquare = null;
+      legalMoves = [];
+      updateStatus();
+    }
+    return;
+  }
+  // Si se hace clic sobre la misma casilla seleccionada, se deselecciona
+  if (selectedSquare === clickedSquare) {
+    selectedSquare = null;
+    legalMoves = [];
+    renderBoard();
+    return;
+  }
+  // Obtener información de la pieza en la casilla clicada
+  const piece = game.get(clickedSquare);
+  if (piece && piece.color === game.turn()) {
+    // Seleccionar esta pieza y calcular sus jugadas legales
+    selectedSquare = clickedSquare;
+    const moves = game.moves({ square: selectedSquare, verbose: true });
+    legalMoves = moves.map(m => m.to);
+  } else {
+    // No hay pieza o no es del turno, deseleccionar
+    selectedSquare = null;
+    legalMoves = [];
+  }
+  renderBoard();
 }
 
 // Calcula el número máximo de jugadas permitidas para mate (en medios movimientos)
